@@ -102,10 +102,13 @@ def init_database() -> bool:
             )''')
             
             # Add party_id column if it doesn't exist (for existing databases)
+            # Using savepoint to allow partial rollback if column exists
             try:
+                c.execute('SAVEPOINT add_party_id')
                 c.execute('ALTER TABLE transactions ADD COLUMN party_id INTEGER REFERENCES parties(id)')
-            except:
-                pass  # Column already exists
+                c.execute('RELEASE SAVEPOINT add_party_id')
+            except psycopg2.Error:
+                c.execute('ROLLBACK TO SAVEPOINT add_party_id')  # Column already exists, rollback to savepoint
             
             # Create indexes for better query performance
             c.execute('CREATE INDEX IF NOT EXISTS idx_transaction_type ON transactions(transaction_type)')
