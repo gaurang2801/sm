@@ -17,7 +17,8 @@ from views import (
     render_view_transactions,
     render_pending_inventory,
     render_ledger,
-    render_settings
+    render_settings,
+    render_parties
 )
 
 
@@ -57,6 +58,7 @@ def main() -> None:
                 "Navigate",
                 [
                     "🏠 Dashboard",
+                    "👥 Contacts",
                     "📥 Record Buying",
                     "📤 Record Selling",
                     "📋 All Transactions",
@@ -76,6 +78,8 @@ def main() -> None:
         # Route to appropriate page
         if page_name == "Dashboard":
             render_dashboard()
+        elif page_name == "Contacts":
+            render_parties()
         elif page_name == "Record Buying":
             render_record_buying()
         elif page_name == "Record Selling":
