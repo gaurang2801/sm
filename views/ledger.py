@@ -110,34 +110,42 @@ def render_buyer_ledger(df: pd.DataFrame) -> None:
     st.divider()
     st.subheader("💳 Update Payment")
     
-    with st.form("buyer_payment_form"):
-        col1, col2 = st.columns(2)
+    # Selectboxes outside form for dynamic behavior
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        selected_buyer = st.selectbox("Select Buyer", options=sorted(buyers), key="buyer_select")
+    
+    with col2:
+        buyer_transactions = buyer_df[buyer_df['buyer_name'] == selected_buyer]
+        trans_options = {
+            f"ID {int(row['id'])} - {row['item_name']} ({row['quantity_kg']:.1f} Q)": int(row['id'])
+            for _, row in buyer_transactions.iterrows()
+        }
         
-        with col1:
-            selected_buyer = st.selectbox("Select Buyer", options=sorted(buyers))
-        
-        with col2:
-            buyer_transactions = buyer_df[buyer_df['buyer_name'] == selected_buyer]
-            trans_options = {
-                f"ID {int(row['id'])} - {row['item_name']} ({row['quantity_kg']:.1f} Q)": int(row['id'])
-                for _, row in buyer_transactions.iterrows()
-            }
-            selected_label = st.selectbox("Select Transaction", options=list(trans_options.keys()))
-            trans_id = trans_options[selected_label]
-        
-        # Get current values
-        trans_row = buyer_transactions[buyer_transactions['id'] == trans_id].iloc[0]
-        trans_base = float(trans_row['base_amount'])
-        current_paid = float(trans_row['amount_paid'])
-        
-        st.write(f"**Base Amount:** {format_currency(trans_base)} | **Currently Paid:** {format_currency(current_paid)}")
-        
+        if not trans_options:
+            st.warning("No transactions for this buyer")
+            return
+            
+        selected_label = st.selectbox("Select Transaction", options=list(trans_options.keys()), key="buyer_trans_select")
+        trans_id = trans_options[selected_label]
+    
+    # Get current values
+    trans_row = buyer_transactions[buyer_transactions['id'] == trans_id].iloc[0]
+    trans_base = float(trans_row['base_amount'])
+    current_paid = float(trans_row['amount_paid'])
+    
+    st.info(f"**Base Amount:** {format_currency(trans_base)} | **Currently Paid:** {format_currency(current_paid)}")
+    
+    # Payment form with just the amount input and submit button
+    with st.form("buyer_payment_form", clear_on_submit=True):
         new_payment = st.number_input(
             "New Payment Amount (₹)", 
             min_value=0.0, 
-            max_value=trans_base, 
-            value=current_paid,
-            step=100.0
+            max_value=float(trans_base), 
+            value=float(current_paid),
+            step=100.0,
+            key="buyer_new_payment"
         )
         
         submitted = st.form_submit_button("💾 Update Payment", use_container_width=True)
@@ -218,40 +226,42 @@ def render_seller_ledger(df: pd.DataFrame) -> None:
     st.divider()
     st.subheader("💳 Update Payment Received")
     
-    with st.form("seller_payment_form"):
-        col1, col2 = st.columns(2)
+    # Selectboxes outside form for dynamic behavior
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        selected_seller = st.selectbox("Select Seller", options=sorted(sellers), key="seller_select")
+    
+    with col2:
+        seller_transactions = seller_df[seller_df['seller_name'] == selected_seller]
+        trans_options = {
+            f"ID {int(row['id'])} - {row['item_name']} ({row['quantity_kg']:.1f} Q)": int(row['id'])
+            for _, row in seller_transactions.iterrows()
+        }
         
-        with col1:
-            selected_seller = st.selectbox("Select Seller", options=sorted(sellers))
-        
-        with col2:
-            seller_transactions = seller_df[seller_df['seller_name'] == selected_seller]
-            trans_options = {
-                f"ID {int(row['id'])} - {row['item_name']} ({row['quantity_kg']:.1f} Q)": int(row['id'])
-                for _, row in seller_transactions.iterrows()
-            }
+        if not trans_options:
+            st.warning("No transactions for this seller")
+            return
             
-            if not trans_options:
-                st.warning("No transactions for this seller")
-                st.form_submit_button("Update", disabled=True)
-                return
-            
-            selected_label = st.selectbox("Select Transaction", options=list(trans_options.keys()))
-            trans_id = trans_options[selected_label]
-        
-        # Get current values
-        trans_row = seller_transactions[seller_transactions['id'] == trans_id].iloc[0]
-        trans_base = float(trans_row['base_amount'])
-        current_received = float(trans_row['amount_paid'])
-        
-        st.write(f"**Base Amount:** {format_currency(trans_base)} | **Currently Received:** {format_currency(current_received)}")
-        
+        selected_label = st.selectbox("Select Transaction", options=list(trans_options.keys()), key="seller_trans_select")
+        trans_id = trans_options[selected_label]
+    
+    # Get current values
+    trans_row = seller_transactions[seller_transactions['id'] == trans_id].iloc[0]
+    trans_base = float(trans_row['base_amount'])
+    current_received = float(trans_row['amount_paid'])
+    
+    st.info(f"**Base Amount:** {format_currency(trans_base)} | **Currently Received:** {format_currency(current_received)}")
+    
+    # Payment form with just the amount input and submit button
+    with st.form("seller_payment_form", clear_on_submit=True):
         new_payment = st.number_input(
             "New Received Amount (₹)", 
             min_value=0.0, 
-            max_value=trans_base, 
-            value=current_received,
-            step=100.0
+            max_value=float(trans_base), 
+            value=float(current_received),
+            step=100.0,
+            key="seller_new_payment"
         )
         
         submitted = st.form_submit_button("💾 Update Payment", use_container_width=True)
