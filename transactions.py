@@ -282,20 +282,27 @@ def update_payment(transaction_id: int, amount_paid: float) -> bool:
             st.error(error_msg)
             return False
 
-        # Fetch total amount to validate against
+        # Fetch transaction to validate
         transaction_df = get_transaction_by_id(transaction_id)
         if transaction_df.empty:
             st.error("Transaction not found")
             return False
-        total_amount = pd.to_numeric(
-            transaction_df.iloc[0].get("total_amount", 0),
-            errors="coerce"
-        )
-        if pd.isna(total_amount):
-            st.error("Invalid total amount for this transaction")
-            return False
-        if amount_paid > float(total_amount):
-            st.error("Amount Paid cannot exceed total amount")
+        
+        row = transaction_df.iloc[0]
+        
+        # Calculate base_amount for validation (price × quantity)
+        # We use base_amount because ledger tracks base amounts, not total with expenses
+        price = pd.to_numeric(row.get("price_per_unit", 0), errors="coerce")
+        qty = pd.to_numeric(row.get("quantity_kg", 0), errors="coerce")
+        
+        if pd.isna(price) or pd.isna(qty):
+            # Fallback to total_amount if base values are missing
+            max_amount = pd.to_numeric(row.get("total_amount", 0), errors="coerce")
+        else:
+            max_amount = price * qty
+        
+        if pd.isna(max_amount):
+            st.error("Invalid amount for this transaction")
             return False
 
         with get_db_connection() as conn:
@@ -311,6 +318,7 @@ def update_payment(transaction_id: int, amount_paid: float) -> bool:
                 return True
             else:
                 logger.warning(f"Transaction ID {transaction_id} not found")
+                st.error("Transaction not found")
                 return False
                 
     except sqlite3.Error as e:
