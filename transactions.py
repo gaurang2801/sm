@@ -304,6 +304,11 @@ def update_payment(transaction_id: int, amount_paid: float) -> bool:
         if pd.isna(max_amount):
             st.error("Invalid amount for this transaction")
             return False
+        
+        # Validate that amount_paid does not exceed max_amount
+        if amount_paid > max_amount:
+            st.error(f"Amount paid (₹{amount_paid:.2f}) cannot exceed base amount (₹{max_amount:.2f})")
+            return False
 
         with get_db_connection() as conn:
             c = conn.cursor()
