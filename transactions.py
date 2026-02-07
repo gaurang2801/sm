@@ -2,7 +2,7 @@
 Transaction operations for the Buying & Selling Dashboard Application.
 """
 
-import sqlite3
+import psycopg2
 import pandas as pd
 from datetime import datetime
 from typing import Optional
@@ -105,17 +105,19 @@ def add_buying_transaction(
                           price_per_unit, base_amount, mandi_charge, tractor_rent, muddat, 
                           cash_discount, labour_charge, transport_charge, total_amount, 
                           amount_paid, transaction_date, notes, status)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         RETURNING id''',
                       ('BUY', buyer_name, None, item_name, quantity_quintal, price_per_unit, 
                        base_amount, mandi_charge, tractor_rent, muddat, 0, 0, 0,
                        total_amount, amount_paid, transaction_date, notes, 'PENDING'))
             
+            result = c.fetchone()
+            transaction_id = result['id'] if result else None
             conn.commit()
-            transaction_id = c.lastrowid
             logger.info(f"Added buying transaction ID {transaction_id} for buyer {buyer_name}")
             return transaction_id
             
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Error adding buying transaction: {e}")
         st.error(f"Database error: {e}")
         return None
@@ -234,17 +236,19 @@ def add_selling_transaction(
                           price_per_unit, base_amount, mandi_charge, tractor_rent, muddat, 
                           cash_discount, labour_charge, transport_charge, total_amount, 
                           amount_paid, transaction_date, notes, status)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                         RETURNING id''',
                       ('SELL', None, seller_name, item_name, quantity_quintal, price_per_unit, 
                        base_amount, 0, 0, 0, cash_discount, labour_charge, transport_charge,
                        total_amount, amount_paid, transaction_date, notes, 'COMPLETED'))
             
+            result = c.fetchone()
+            transaction_id = result['id'] if result else None
             conn.commit()
-            transaction_id = c.lastrowid
             
             # If linked to a buying transaction, update its status
             if buy_transaction_id:
-                c.execute('UPDATE transactions SET status = ?, updated_at = ? WHERE id = ?',
+                c.execute('UPDATE transactions SET status = %s, updated_at = %s WHERE id = %s',
                          ('SOLD', datetime.now().strftime("%Y-%m-%d %H:%M:%S"), buy_transaction_id))
                 conn.commit()
                 logger.info(f"Linked selling transaction ID {transaction_id} to buying transaction ID {buy_transaction_id}")
@@ -252,7 +256,7 @@ def add_selling_transaction(
             logger.info(f"Added selling transaction ID {transaction_id} for seller {seller_name}")
             return transaction_id
             
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Error adding selling transaction: {e}")
         st.error(f"Database error: {e}")
         return None
@@ -313,8 +317,8 @@ def update_payment(transaction_id: int, amount_paid: float) -> bool:
         with get_db_connection() as conn:
             c = conn.cursor()
             c.execute('''UPDATE transactions 
-                         SET amount_paid = ?, updated_at = ? 
-                         WHERE id = ?''',
+                         SET amount_paid = %s, updated_at = %s 
+                         WHERE id = %s''',
                      (amount_paid, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), transaction_id))
             conn.commit()
             
@@ -326,7 +330,7 @@ def update_payment(transaction_id: int, amount_paid: float) -> bool:
                 st.error("Transaction not found")
                 return False
                 
-    except sqlite3.Error as e:
+    except psycopg2.Error as e:
         logger.error(f"Error updating payment for transaction {transaction_id}: {e}")
         st.error(f"Database error: {e}")
         return False
