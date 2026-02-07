@@ -134,31 +134,37 @@ def render_buyer_ledger(df: pd.DataFrame) -> None:
     trans_row = buyer_transactions[buyer_transactions['id'] == trans_id].iloc[0]
     trans_base = float(trans_row['base_amount'])
     current_paid = float(trans_row['amount_paid'])
+    remaining = trans_base - current_paid
     
-    st.info(f"**Base Amount:** {format_currency(trans_base)} | **Currently Paid:** {format_currency(current_paid)}")
+    st.info(f"**Base Amount:** {format_currency(trans_base)} | **Paid:** {format_currency(current_paid)} | **Remaining:** {format_currency(remaining)}")
     
-    # Store trans_id in session state for form submission
+    # Store values in session state for form submission
     st.session_state['buyer_trans_id'] = trans_id
-    st.session_state['buyer_trans_base'] = trans_base
+    st.session_state['buyer_current_paid'] = current_paid
     
-    # Payment form with just the amount input and submit button
+    # Payment form - ADD payment to existing amount
     with st.form("buyer_payment_form"):
-        new_payment = st.number_input(
-            "New Payment Amount (₹)", 
+        add_payment = st.number_input(
+            "Add Payment (₹)", 
             min_value=0.0, 
-            max_value=float(trans_base), 
-            value=float(current_paid),
-            step=100.0
+            max_value=float(remaining),
+            value=0.0,
+            step=100.0,
+            help=f"Enter amount to add. Remaining: ₹{remaining:.2f}"
         )
         
-        submitted = st.form_submit_button("💾 Update Payment", use_container_width=True)
+        submitted = st.form_submit_button("💾 Add Payment", use_container_width=True)
         
         if submitted:
-            # Get trans_id from session state
             tid = st.session_state.get('buyer_trans_id')
-            if tid and update_payment(tid, new_payment):
-                st.success("✅ Payment updated successfully!")
+            curr_paid = st.session_state.get('buyer_current_paid', 0)
+            new_total = curr_paid + add_payment
+            
+            if tid and add_payment > 0 and update_payment(tid, new_total):
+                st.success(f"✅ Added ₹{add_payment:.2f}. New total paid: ₹{new_total:.2f}")
                 st.rerun()
+            elif add_payment <= 0:
+                st.warning("Please enter an amount greater than 0")
             else:
                 st.error("Failed to update payment.")
 
@@ -255,31 +261,37 @@ def render_seller_ledger(df: pd.DataFrame) -> None:
     trans_row = seller_transactions[seller_transactions['id'] == trans_id].iloc[0]
     trans_base = float(trans_row['base_amount'])
     current_received = float(trans_row['amount_paid'])
+    remaining = trans_base - current_received
     
-    st.info(f"**Base Amount:** {format_currency(trans_base)} | **Currently Received:** {format_currency(current_received)}")
+    st.info(f"**Base Amount:** {format_currency(trans_base)} | **Received:** {format_currency(current_received)} | **Remaining:** {format_currency(remaining)}")
     
-    # Store trans_id in session state for form submission
+    # Store values in session state for form submission
     st.session_state['seller_trans_id'] = trans_id
-    st.session_state['seller_trans_base'] = trans_base
+    st.session_state['seller_current_received'] = current_received
     
-    # Payment form with just the amount input and submit button
+    # Payment form - ADD payment to existing amount
     with st.form("seller_payment_form"):
-        new_payment = st.number_input(
-            "New Received Amount (₹)", 
+        add_payment = st.number_input(
+            "Add Payment Received (₹)", 
             min_value=0.0, 
-            max_value=float(trans_base), 
-            value=float(current_received),
-            step=100.0
+            max_value=float(remaining),
+            value=0.0,
+            step=100.0,
+            help=f"Enter amount received. Remaining: ₹{remaining:.2f}"
         )
         
-        submitted = st.form_submit_button("💾 Update Payment", use_container_width=True)
+        submitted = st.form_submit_button("💾 Add Payment", use_container_width=True)
         
         if submitted:
-            # Get trans_id from session state
             tid = st.session_state.get('seller_trans_id')
-            if tid and update_payment(tid, new_payment):
-                st.success("✅ Payment updated successfully!")
+            curr_recv = st.session_state.get('seller_current_received', 0)
+            new_total = curr_recv + add_payment
+            
+            if tid and add_payment > 0 and update_payment(tid, new_total):
+                st.success(f"✅ Added ₹{add_payment:.2f}. New total received: ₹{new_total:.2f}")
                 st.rerun()
+            elif add_payment <= 0:
+                st.warning("Please enter an amount greater than 0")
             else:
                 st.error("Failed to update payment.")
 
