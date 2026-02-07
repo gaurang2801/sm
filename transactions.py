@@ -112,7 +112,7 @@ def add_buying_transaction(
                        total_amount, amount_paid, transaction_date, notes, 'PENDING'))
             
             result = c.fetchone()
-            transaction_id = result['id'] if result else None
+            transaction_id = result[0] if result else None
             conn.commit()
             logger.info(f"Added buying transaction ID {transaction_id} for buyer {buyer_name}")
             return transaction_id
@@ -243,7 +243,7 @@ def add_selling_transaction(
                        total_amount, amount_paid, transaction_date, notes, 'COMPLETED'))
             
             result = c.fetchone()
-            transaction_id = result['id'] if result else None
+            transaction_id = result[0] if result else None
             conn.commit()
             
             # If linked to a buying transaction, update its status

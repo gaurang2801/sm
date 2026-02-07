@@ -43,7 +43,7 @@ def get_db_connection():
         if not database_url:
             raise Exception("DATABASE_URL not configured. Please set it in Streamlit secrets.")
         
-        conn = psycopg2.connect(database_url, cursor_factory=RealDictCursor)
+        conn = psycopg2.connect(database_url)
         yield conn
     except psycopg2.Error as e:
         logger.error(f"Database connection error: {e}")
