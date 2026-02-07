@@ -1,54 +1,75 @@
-# Streamlit App for Buying and Selling Dashboard
+# Buying & Selling Dashboard
 
-This Streamlit app calculates the buying and selling prices based on the provided charges and discounts.
+A professional Streamlit application for managing buying and selling transactions with comprehensive error handling, input validation, and edge case management.
+
+## Features
+
+- 📊 **Dashboard** - Monitor business performance at a glance with key metrics and charts
+- 📥 **Record Buying** - Add purchase transactions with automatic cost calculations
+- 📤 **Record Selling** - Record sales and link them to inventory
+- 📋 **View Transactions** - Filter, search, and manage all transactions
+- 📦 **Pending Inventory** - Track items bought but not yet sold
+- 💼 **Buyer/Seller Ledger** - Manage payment balances and track dues
+- ⚙️ **Settings** - View configuration and application logs
+
+## Project Structure
+
+```
+v1/
+├── app.py                 # Main application entry point
+├── config.py              # Configuration and constants
+├── database.py            # Database operations and CRUD functions
+├── validators.py          # Input validation functions
+├── calculations.py        # Price calculation functions
+├── transactions.py        # Transaction CRUD operations
+├── utils.py               # Utility functions and UI helpers
+├── styles.py              # Custom CSS styling
+├── logger_setup.py        # Logging configuration
+├── pages/                 # Page modules
+│   ├── __init__.py
+│   ├── dashboard.py
+│   ├── record_buying.py
+│   ├── record_selling.py
+│   ├── view_transactions.py
+│   ├── pending_inventory.py
+│   ├── ledger.py
+│   └── settings.py
+├── logs/                  # Application logs
+└── transactions.db        # SQLite database
+```
 
 ## Requirements
-- Python 3.x
+
+- Python 3.8+
 - Streamlit
+- Pandas
+- SQLite3 (included with Python)
 
 ## Installation
-To install the required packages, run:
+
 ```bash
-pip install streamlit
+pip install streamlit pandas
 ```
 
 ## Usage
-To run the app, execute:
+
 ```bash
 streamlit run app.py
 ```
 
-## Code
-```python
-import streamlit as st
+## Configuration
 
-# Function to calculate buying price
-def calculate_buying_price(buying_price):
-    mandi_charge = 0.015 * buying_price
-    tractor_rent = 15 * (buying_price / 100)  # Assuming buying price is in kg
-    total_buying_price = buying_price + mandi_charge + tractor_rent
-    return total_buying_price
+Transaction rates and limits can be modified in `config.py`:
 
-# Function to calculate selling price
-def calculate_selling_price(selling_price, buying_price):
-    cash_discount = 0.04 * selling_price
-    labour_charge = 60 * (selling_price / 100)  # Assuming selling price is in kg
-    transport_charge = 280 * (selling_price / 100)  # Assuming selling price is in kg
-    total_selling_price = selling_price - cash_discount - labour_charge - transport_charge
-    return total_selling_price
+| Setting | Default Value |
+|---------|---------------|
+| Mandi Charge Rate | 1.5% |
+| Muddat Rate | 1.5% |
+| Cash Discount Rate | 4% |
+| Tractor Rent | ₹15/Quintal |
+| Labour Charge | ₹60/Quintal |
+| Transport Charge | ₹280/Quintal |
 
-# Streamlit UI
-st.title('Buying and Selling Price Dashboard')
+## License
 
-# Input fields
-buying_price = st.number_input('Enter Buying Price:', min_value=0.0)
-
-if st.button('Calculate Buying Price'):
-    total_buying = calculate_buying_price(buying_price)
-    st.write(f'Total Buying Price: {total_buying}')
-
-selling_price = st.number_input('Enter Selling Price:', min_value=0.0)
-
-if st.button('Calculate Selling Price'):
-    total_selling = calculate_selling_price(selling_price, buying_price)
-    st.write(f'Total Selling Price: {total_selling}')
+MIT License

@@ -1,0 +1,216 @@
+"""
+Record Buying page for the Buying & Selling Dashboard Application.
+"""
+
+import streamlit as st
+
+from config import CONFIG
+from calculations import calculate_buying_price
+from transactions import add_buying_transaction
+from utils import format_currency, display_error_message
+
+
+def render_record_buying() -> None:
+    """Render the record buying transaction page."""
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;'>
+        <h2 style='color: white; margin: 0; font-size: 1.8rem;'>
+            📥 Record Buying Transaction
+        </h2>
+        <p style='color: rgba(255,255,255,0.9); margin: 0.5rem 0 0 0;'>
+            Add new purchase transactions to your inventory
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div style='background: white; padding: 2rem; border-radius: 12px; 
+               box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 2rem;'>
+        <h3 style='color: #1a1a2e; margin-top: 0;'>Transaction Details</h3>
+        <p style='color: #4a5568; margin-bottom: 1.5rem;'>
+            Fill in the details below to record a new buying transaction
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    with st.form("buying_form"):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("""
+            <div style='margin-bottom: 0.5rem;'>
+                <label style='color: #1a1a2e; font-weight: 600;'>Buyer Name *</label>
+            </div>
+            """, unsafe_allow_html=True)
+            buyer_name = st.text_input(
+                "",
+                placeholder="e.g., Farmer Name/Organization",
+                max_chars=CONFIG.MAX_NAME_LENGTH,
+                label_visibility="collapsed"
+            )
+            
+            st.markdown("""
+            <div style='margin-bottom: 0.5rem; margin-top: 1rem;'>
+                <label style='color: #1a1a2e; font-weight: 600;'>Item Name *</label>
+            </div>
+            """, unsafe_allow_html=True)
+            item_name = st.text_input(
+                "",
+                placeholder="e.g., Rice, Wheat",
+                max_chars=CONFIG.MAX_ITEM_NAME_LENGTH,
+                label_visibility="collapsed"
+            )
+        
+        with col2:
+            st.markdown("""
+            <div style='margin-bottom: 0.5rem;'>
+                <label style='color: #1a1a2e; font-weight: 600;'>Quantity (Quintal) *</label>
+            </div>
+            """, unsafe_allow_html=True)
+            quantity_quintal = st.number_input(
+                "",
+                min_value=CONFIG.MIN_QUANTITY,
+                max_value=CONFIG.MAX_QUANTITY,
+                value=1.0,
+                step=0.5,
+                format="%.2f",
+                label_visibility="collapsed"
+            )
+            
+            st.markdown("""
+            <div style='margin-bottom: 0.5rem; margin-top: 1rem;'>
+                <label style='color: #1a1a2e; font-weight: 600;'>Price per Quintal (₹) *</label>
+            </div>
+            """, unsafe_allow_html=True)
+            price_per_unit = st.number_input(
+                "",
+                min_value=CONFIG.MIN_PRICE,
+                max_value=CONFIG.MAX_PRICE,
+                value=1000.0,
+                step=100.0,
+                format="%.2f",
+                label_visibility="collapsed"
+            )
+        
+        with col3:
+            st.markdown("""
+            <div style='margin-bottom: 0.5rem;'>
+                <label style='color: #1a1a2e; font-weight: 600;'>Amount Paid (₹)</label>
+            </div>
+            """, unsafe_allow_html=True)
+            amount_paid = st.number_input(
+                "",
+                min_value=0.0,
+                max_value=CONFIG.MAX_AMOUNT,
+                value=0.0,
+                step=100.0,
+                format="%.2f",
+                label_visibility="collapsed"
+            )
+            
+            st.markdown("""
+            <div style='margin-bottom: 0.5rem; margin-top: 1rem;'>
+                <label style='color: #1a1a2e; font-weight: 600;'>Notes (Optional)</label>
+            </div>
+            """, unsafe_allow_html=True)
+            notes = st.text_area(
+                "",
+                placeholder="Any additional notes",
+                max_chars=CONFIG.MAX_NOTES_LENGTH,
+                label_visibility="collapsed"
+            )
+        
+        st.markdown("<div style='margin-top: 1.5rem;'></div>", unsafe_allow_html=True)
+        submitted = st.form_submit_button("📝 Record Buying Transaction", use_container_width=True)
+        
+        if submitted:
+            if buyer_name and item_name and quantity_quintal > 0 and price_per_unit > 0:
+                try:
+                    base_amount = price_per_unit * quantity_quintal
+                    total_amount, mandi_charge, tractor_rent, muddat = calculate_buying_price(
+                        base_amount, quantity_quintal
+                    )
+                    
+                    # Add to database
+                    transaction_id = add_buying_transaction(
+                        buyer_name, item_name, quantity_quintal, price_per_unit,
+                        mandi_charge, tractor_rent, muddat,
+                        total_amount, amount_paid, notes
+                    )
+                    
+                    if transaction_id:
+                        st.markdown(f"""
+                        <div style='background: linear-gradient(135deg, #48bb7815 0%, #38a16915 100%); 
+                                   padding: 1.5rem; border-radius: 12px; border-left: 4px solid #48bb78; margin-bottom: 1.5rem;'>
+                            <div style='display: flex; align-items: center;'>
+                                <div style='font-size: 2rem; margin-right: 1rem;'>✅</div>
+                                <div>
+                                    <h4 style='color: #065f46; margin: 0 0 0.25rem 0;'>
+                                        Buying Transaction Recorded Successfully!
+                                    </h4>
+                                    <p style='color: #065f46; margin: 0;'>
+                                        Transaction ID: {transaction_id}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Show breakdown
+                        with st.expander("💰 Cost Breakdown", expanded=True):
+                            st.markdown("""
+                            <div style='background: white; padding: 1.5rem; border-radius: 12px; 
+                                       box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                            """, unsafe_allow_html=True)
+                            col_b1, col_b2 = st.columns(2)
+                            with col_b1:
+                                st.markdown(f"""
+                                <div style='margin-bottom: 0.75rem;'>
+                                    <span style='color: #4a5568;'>Base Price:</span>
+                                    <span style='color: #1a1a2e; font-weight: 700; float: right;'>{format_currency(base_amount)}</span>
+                                </div>
+                                <div style='margin-bottom: 0.75rem;'>
+                                    <span style='color: #4a5568;'>Mandi Charge ({CONFIG.MANDI_CHARGE_RATE*100}%):</span>
+                                    <span style='color: #1a1a2e; font-weight: 700; float: right;'>{format_currency(mandi_charge)}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            with col_b2:
+                                st.markdown(f"""
+                                <div style='margin-bottom: 0.75rem;'>
+                                    <span style='color: #4a5568;'>Tractor Rent (₹{CONFIG.TRACTOR_RENT_PER_QUINTAL}/Quintal):</span>
+                                    <span style='color: #1a1a2e; font-weight: 700; float: right;'>{format_currency(tractor_rent)}</span>
+                                </div>
+                                <div style='margin-bottom: 0.75rem;'>
+                                    <span style='color: #4a5568;'>Muddat ({CONFIG.MUDDAT_RATE*100}%):</span>
+                                    <span style='color: #1a1a2e; font-weight: 700; float: right;'>{format_currency(muddat)}</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            st.markdown(f"""
+                            <div style='border-top: 2px solid #667eea; padding-top: 1rem; margin-top: 1rem;'>
+                                <span style='color: #1a1a2e; font-weight: 700; font-size: 1.2rem;'>Total:</span>
+                                <span style='color: #667eea; font-weight: 700; font-size: 1.2rem; float: right;'>{format_currency(total_amount)}</span>
+                            </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                except ValueError as e:
+                    display_error_message(f"Calculation error: {e}")
+                except Exception as e:
+                    display_error_message(f"An unexpected error occurred: {e}")
+            else:
+                st.markdown("""
+                <div style='background: linear-gradient(135deg, #f5656515 0%, #e53e3e15 100%); 
+                           padding: 1.5rem; border-radius: 12px; border-left: 4px solid #f56565;'>
+                    <div style='display: flex; align-items: center;'>
+                        <div style='font-size: 2rem; margin-right: 1rem;'>❌</div>
+                        <div>
+                            <h4 style='color: #c53030; margin: 0 0 0.25rem 0;'>
+                                Validation Error
+                            </h4>
+                            <p style='color: #c53030; margin: 0;'>
+                                Please fill all required fields with valid values
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
