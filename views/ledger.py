@@ -137,21 +137,26 @@ def render_buyer_ledger(df: pd.DataFrame) -> None:
     
     st.info(f"**Base Amount:** {format_currency(trans_base)} | **Currently Paid:** {format_currency(current_paid)}")
     
+    # Store trans_id in session state for form submission
+    st.session_state['buyer_trans_id'] = trans_id
+    st.session_state['buyer_trans_base'] = trans_base
+    
     # Payment form with just the amount input and submit button
-    with st.form("buyer_payment_form", clear_on_submit=True):
+    with st.form("buyer_payment_form"):
         new_payment = st.number_input(
             "New Payment Amount (₹)", 
             min_value=0.0, 
             max_value=float(trans_base), 
             value=float(current_paid),
-            step=100.0,
-            key="buyer_new_payment"
+            step=100.0
         )
         
         submitted = st.form_submit_button("💾 Update Payment", use_container_width=True)
         
         if submitted:
-            if update_payment(trans_id, new_payment):
+            # Get trans_id from session state
+            tid = st.session_state.get('buyer_trans_id')
+            if tid and update_payment(tid, new_payment):
                 st.success("✅ Payment updated successfully!")
                 st.rerun()
             else:
@@ -253,21 +258,26 @@ def render_seller_ledger(df: pd.DataFrame) -> None:
     
     st.info(f"**Base Amount:** {format_currency(trans_base)} | **Currently Received:** {format_currency(current_received)}")
     
+    # Store trans_id in session state for form submission
+    st.session_state['seller_trans_id'] = trans_id
+    st.session_state['seller_trans_base'] = trans_base
+    
     # Payment form with just the amount input and submit button
-    with st.form("seller_payment_form", clear_on_submit=True):
+    with st.form("seller_payment_form"):
         new_payment = st.number_input(
             "New Received Amount (₹)", 
             min_value=0.0, 
             max_value=float(trans_base), 
             value=float(current_received),
-            step=100.0,
-            key="seller_new_payment"
+            step=100.0
         )
         
         submitted = st.form_submit_button("💾 Update Payment", use_container_width=True)
         
         if submitted:
-            if update_payment(trans_id, new_payment):
+            # Get trans_id from session state
+            tid = st.session_state.get('seller_trans_id')
+            if tid and update_payment(tid, new_payment):
                 st.success("✅ Payment updated successfully!")
                 st.rerun()
             else:
