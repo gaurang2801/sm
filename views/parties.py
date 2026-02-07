@@ -5,7 +5,7 @@ Parties Management view for managing buyers and sellers.
 import streamlit as st
 import pandas as pd
 from database import add_party, get_all_parties, delete_party
-from styles import format_currency
+from utils import format_currency
 
 
 def render_parties():
