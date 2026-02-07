@@ -1,2 +1,2 @@
-# Local database
-transactions.db
+# Python cache
+__pycache__/
